@@ -1,0 +1,64 @@
+{
+  "dataPath": "reports",
+  "folderRegex": "^(\\d{4}-\\d{2}-\\d{2})$",
+  "fileName": "stock_data_{date}.csv",
+  "symbolField": "stock_id",
+  "groupMembershipField": "indices",
+  "symbolGroups": [
+    { "id": "NIFTY50", "label": "NIFTY50" },
+    { "id": "HEALTHCARE", "label": "Healthcare" }
+  ],
+  "defaultSymbolGroup": "NIFTY50",
+  "fixedColumns": {
+    "symbol": { "label": "Symbol", "description": "Ticker symbol of the stock." },
+    "totalPoints": { "label": "Total Points", "description": "Sum over groups of group weight × group points. Stocks are ranked by this value." }
+  },
+  "groups": [
+    {
+      "id": "technicals", "label": "Technicals", "description": "Price and momentum indicators.", "defaultWeight": 1,
+      "columns": [
+        { "id": "rsi", "field": "rsi", "label": "RSI", "description": "14-day Relative Strength Index.", "type": "number",
+          "format": { "decimals": 1 }, "defaultWeight": 2, "defaultCondition": "lt30",
+          "conditions": [
+            { "id": "lt30", "label": "< 30 (oversold)", "op": "lt", "value": 30 },
+            { "id": "lt40", "label": "< 40", "op": "lt", "value": 40 },
+            { "id": "gt70", "label": "> 70 (overbought)", "op": "gt", "value": 70 }
+          ] },
+        { "id": "pctFromHigh", "field": "pctFromHigh", "label": "% from 52w high", "description": "Distance from the 52-week high, in percent.", "type": "number",
+          "format": { "decimals": 1, "suffix": "%" }, "defaultWeight": 1, "defaultCondition": "within10",
+          "conditions": [
+            { "id": "within10", "label": "within 10% of high", "op": "gte", "value": -10 },
+            { "id": "between", "label": "between -20% and -10%", "op": "between", "min": -20, "max": -10 }
+          ] }
+      ]
+    },
+    {
+      "id": "fundamentals", "label": "Fundamentals", "description": "Valuation and profitability.", "defaultWeight": 1.5,
+      "columns": [
+        { "id": "pe", "field": "pe", "label": "P/E", "description": "Price to earnings ratio.", "type": "number",
+          "format": { "decimals": 1 }, "defaultWeight": 1, "defaultCondition": "lt20",
+          "conditions": [
+            { "id": "lt20", "label": "< 20", "op": "lt", "value": 20 },
+            { "id": "lt15", "label": "< 15", "op": "lt", "value": 15 }
+          ] },
+        { "id": "roe", "field": "roe", "label": "ROE", "description": "Return on equity, in percent.", "type": "number",
+          "format": { "decimals": 1, "suffix": "%" }, "defaultWeight": 1, "defaultCondition": "gt15",
+          "conditions": [
+            { "id": "gt15", "label": "> 15%", "op": "gt", "value": 15 },
+            { "id": "gt20", "label": "> 20%", "op": "gt", "value": 20 }
+          ] }
+      ]
+    },
+    {
+      "id": "analyst", "label": "Analyst Ratings", "description": "Consensus analyst view.", "defaultWeight": 1,
+      "columns": [
+        { "id": "rating", "field": "rating", "label": "Rating", "description": "Consensus analyst rating.", "type": "text",
+          "defaultWeight": 2, "defaultCondition": "buy",
+          "conditions": [
+            { "id": "buy", "label": "is Buy / Strong Buy", "op": "in", "values": ["Buy", "Strong Buy"] },
+            { "id": "hold", "label": "is Hold", "op": "eq", "value": "Hold" }
+          ] }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,6 @@
+[
+  {"ticker":"AAA","indices":["NIFTY50"],"rsi":27.5,"pctFromHigh":-12.1,"pe":14.2,"roe":21.4,"rating":"Buy"},
+  {"ticker":"BBB","indices":["NIFTY50","HEALTHCARE"],"rsi":55,"pctFromHigh":-4.3,"pe":31.8,"roe":"n/a","rating":"Hold"},
+  {"ticker":"CCC","indices":["HEALTHCARE"],"rsi":72.4,"pctFromHigh":-1.2,"pe":18.9,"roe":16.2,"rating":"Strong Buy"},
+  {"ticker":"DDD","indices":["NIFTY50"],"rsi":null,"pctFromHigh":-30,"pe":9.5,"roe":11,"rating":"Sell"}
+]

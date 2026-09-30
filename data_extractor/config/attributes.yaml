@@ -1,0 +1,15 @@
+- column_id: close_price
+  download_fn: downloaders.nse.download_bhavcopy
+  download_url: "https://nsearchives.nseindia.com/products/content/sec_bhavdata_full_{date:%d%m%Y}.csv"
+  offline_path: "bhavcopy/sec_bhavdata_full_{date:%d%m%Y}.csv"
+  post_process_fn: processors.bhavcopy.extract_close
+  oracle_table: STOCK_DATA
+  oracle_column: CLOSE_PRICE
+
+- column_id: volume
+  download_fn: downloaders.nse.download_bhavcopy
+  download_url: "https://nsearchives.nseindia.com/products/content/sec_bhavdata_full_{date:%d%m%Y}.csv"
+  offline_path: "bhavcopy/sec_bhavdata_full_{date:%d%m%Y}.csv"   # same file -> grouped
+  post_process_fn: processors.bhavcopy.extract_volume
+  oracle_table: STOCK_DATA
+  oracle_column: VOLUME

@@ -1,0 +1,18 @@
+offline_root: ./data/offline
+report_dir: ./data/reports
+oracle:
+  user_env: ORACLE_USER          # secrets come from env vars only
+  password_env: ORACLE_PASSWORD
+  dsn_env: ORACLE_DSN
+  stock_id_column: STOCK_ID
+  date_column: AS_OF_DATE
+firebase:
+  credentials_env: GOOGLE_APPLICATION_CREDENTIALS
+  bucket: FIREBASE_BUCKET
+  report_prefix: reports         # -> reports/{YYYY-MM-DD}/stock_data_{YYYY-MM-DD}.csv
+download:
+  timeout_seconds: 60
+  max_retries: 3
+max_workers: 4
+upload_on_partial_failure: false
+log_dir: ./logs

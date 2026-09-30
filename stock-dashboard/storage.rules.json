@@ -1,0 +1,35 @@
+// rules_version = '2';
+
+// // Craft rules based on data in your Firestore database
+// // allow write: if firestore.get(
+// //    /databases/(default)/documents/users/$(request.auth.uid)).data.isAdmin;
+// service firebase.storage {
+//   match /b/{bucket}/o {
+//     match /{allPaths=**} {
+//       allow read, write: if true;
+//     }
+//   }
+// }
+
+
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    // Shared stock reports: any signed-in user can read and list, nobody can write from the client
+    match /reports/{allPaths=**} {
+      allow read: if request.auth != null;
+      allow write: if false;
+    }
+
+    // Optional: per-user private files, only needed if you store any
+    match /users/{uid}/{allPaths=**} {
+      allow read, write: if request.auth != null && request.auth.uid == uid;
+    }
+
+    // Everything else is denied
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

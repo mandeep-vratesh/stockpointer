@@ -1,0 +1,18 @@
+// {
+//   "rules": {
+//     ".read": "now < 1793332800000",  // 2026-10-30
+//     ".write": "now < 1793332800000",  // 2026-10-30
+//   }
+// }
+{
+  "rules": {
+    ".read": false,
+    ".write": false,
+    "users": {
+      "$uid": {
+        ".read": "auth != null && auth.uid === $uid",
+        ".write": "auth != null && auth.uid === $uid"
+      }
+    }
+  }
+}

@@ -1,0 +1,38 @@
+.env
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+dashboard/dist/*
+
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+firebase-debug.log*
+firebase-debug.*.log*
+
+# Firebase cache
+dashboard/.firebase
+
+# Firebase config
+
+# Uncomment this if you'd like others to create their own Firebase project.
+# For a team working on the same Firebase project(s), it is recommended to leave
+# it commented so all members can deploy to the same project(s) in .firebaserc.
+dashboard/.firebaserc
+
+# Dependency directories
+dashboard/node_modules/
+dashboard/vite.*
+dashboard/tsconfig.*
+*-adminsdk-*.json
+dashboard/package-lock.json
+data_extractor/data/
+stock-dashboard/node_modules/
+stock-dashboard/.firebaserc
+stock-dashboard/package-lock.json
+stock-dashboard/.firebase/hosting.ZGlzdA.cache
+stock-dashboard/dist/

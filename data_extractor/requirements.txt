@@ -1,0 +1,8 @@
+oracledb>=2.0
+pandas>=2.0
+requests>=2.31
+firebase-admin>=6.4
+pyyaml>=6.0
+tenacity>=8.2
+cryptography>=45.0.7,<47
+python-dotenv
