@@ -13,3 +13,35 @@
   post_process_fn: processors.bhavcopy.extract_volume
   oracle_table: STOCK_DATA
   oracle_column: VOLUME
+
+- column_id: open_price
+  download_fn: downloaders.nse.download_bhavcopy
+  download_url: "https://nsearchives.nseindia.com/products/content/sec_bhavdata_full_{date:%d%m%Y}.csv"
+  offline_path: "bhavcopy/sec_bhavdata_full_{date:%d%m%Y}.csv"
+  post_process_fn: processors.bhavcopy.extract_open
+  oracle_table: STOCK_DATA
+  oracle_column: OPEN_PRICE
+
+- column_id: high_price
+  download_fn: downloaders.nse.download_bhavcopy
+  download_url: "https://nsearchives.nseindia.com/products/content/sec_bhavdata_full_{date:%d%m%Y}.csv"
+  offline_path: "bhavcopy/sec_bhavdata_full_{date:%d%m%Y}.csv"
+  post_process_fn: processors.bhavcopy.extract_high
+  oracle_table: STOCK_DATA
+  oracle_column: HIGH_PRICE
+
+- column_id: low_price
+  download_fn: downloaders.nse.download_bhavcopy
+  download_url: "https://nsearchives.nseindia.com/products/content/sec_bhavdata_full_{date:%d%m%Y}.csv"
+  offline_path: "bhavcopy/sec_bhavdata_full_{date:%d%m%Y}.csv"
+  post_process_fn: processors.bhavcopy.extract_low
+  oracle_table: STOCK_DATA
+  oracle_column: LOW_PRICE
+
+- column_id: deliv_qty
+  download_fn: downloaders.nse.download_bhavcopy
+  download_url: "https://nsearchives.nseindia.com/products/content/sec_bhavdata_full_{date:%d%m%Y}.csv"
+  offline_path: "bhavcopy/sec_bhavdata_full_{date:%d%m%Y}.csv"
+  post_process_fn: processors.bhavcopy.extract_delivery
+  oracle_table: STOCK_DATA
+  oracle_column: DELIV_QTY

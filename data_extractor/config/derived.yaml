@@ -1,0 +1,302 @@
+# Derived (technical-indicator) fields. Computed AFTER the raw values are written, from Oracle history.
+# sources: role -> raw column_id from attributes.yaml. lookback_rows: trading-day rows of history per stock.
+# Blank (NULL) is written whenever a value cannot be computed (not enough history, missing input, ...).
+
+# --- Trend
+
+- column_id: sma_20
+  derive_fn: derivers.indicators.sma
+  sources: {close: close_price}
+  params: {window: 20}
+  lookback_rows: 20
+  oracle_table: STOCK_DATA
+  oracle_column: SMA_20
+
+- column_id: sma_50
+  derive_fn: derivers.indicators.sma
+  sources: {close: close_price}
+  params: {window: 50}
+  lookback_rows: 50
+  oracle_table: STOCK_DATA
+  oracle_column: SMA_50
+
+- column_id: sma_200
+  derive_fn: derivers.indicators.sma
+  sources: {close: close_price}
+  params: {window: 200}
+  lookback_rows: 200
+  oracle_table: STOCK_DATA
+  oracle_column: SMA_200
+
+- column_id: ema_20
+  derive_fn: derivers.indicators.ema
+  sources: {close: close_price}
+  params: {window: 20}
+  lookback_rows: 100
+  oracle_table: STOCK_DATA
+  oracle_column: EMA_20
+
+- column_id: ema_50
+  derive_fn: derivers.indicators.ema
+  sources: {close: close_price}
+  params: {window: 50}
+  lookback_rows: 200
+  oracle_table: STOCK_DATA
+  oracle_column: EMA_50
+
+- column_id: close_vs_sma_50
+  derive_fn: derivers.indicators.close_vs_sma
+  sources: {close: close_price}
+  params: {window: 50}
+  lookback_rows: 50
+  oracle_table: STOCK_DATA
+  oracle_column: CLOSE_VS_SMA_50
+
+- column_id: sma_50_200_ratio
+  derive_fn: derivers.indicators.sma_ratio
+  sources: {close: close_price}
+  params: {fast: 50, slow: 200}
+  lookback_rows: 200
+  oracle_table: STOCK_DATA
+  oracle_column: SMA_50_200_RATIO
+
+- column_id: macd_line
+  derive_fn: derivers.indicators.macd
+  sources: {close: close_price}
+  params: {fast: 12, slow: 26, signal: 9, output: line, pct: true}
+  lookback_rows: 150
+  oracle_table: STOCK_DATA
+  oracle_column: MACD_LINE
+
+- column_id: macd_signal
+  derive_fn: derivers.indicators.macd
+  sources: {close: close_price}
+  params: {fast: 12, slow: 26, signal: 9, output: signal, pct: true}
+  lookback_rows: 150
+  oracle_table: STOCK_DATA
+  oracle_column: MACD_SIGNAL
+
+- column_id: macd_hist
+  derive_fn: derivers.indicators.macd
+  sources: {close: close_price}
+  params: {fast: 12, slow: 26, signal: 9, output: hist, pct: true}
+  lookback_rows: 150
+  oracle_table: STOCK_DATA
+  oracle_column: MACD_HIST
+
+- column_id: adx_14
+  derive_fn: derivers.indicators.adx
+  sources: {high: high_price, low: low_price, close: close_price}
+  params: {window: 14, output: adx}
+  lookback_rows: 150
+  oracle_table: STOCK_DATA
+  oracle_column: ADX_14
+
+- column_id: plus_di_14
+  derive_fn: derivers.indicators.adx
+  sources: {high: high_price, low: low_price, close: close_price}
+  params: {window: 14, output: plus_di}
+  lookback_rows: 150
+  oracle_table: STOCK_DATA
+  oracle_column: PLUS_DI_14
+
+- column_id: minus_di_14
+  derive_fn: derivers.indicators.adx
+  sources: {high: high_price, low: low_price, close: close_price}
+  params: {window: 14, output: minus_di}
+  lookback_rows: 150
+  oracle_table: STOCK_DATA
+  oracle_column: MINUS_DI_14
+
+# --- Momentum
+
+- column_id: rsi_14
+  derive_fn: derivers.indicators.rsi
+  sources: {close: close_price}
+  params: {window: 14}
+  lookback_rows: 100
+  oracle_table: STOCK_DATA
+  oracle_column: RSI_14
+
+- column_id: roc_12
+  derive_fn: derivers.indicators.roc
+  sources: {close: close_price}
+  params: {window: 12}
+  lookback_rows: 13
+  oracle_table: STOCK_DATA
+  oracle_column: ROC_12
+
+- column_id: stoch_k_14
+  derive_fn: derivers.indicators.stochastic
+  sources: {high: high_price, low: low_price, close: close_price}
+  params: {window: 14, smooth: 3, output: k}
+  lookback_rows: 30
+  oracle_table: STOCK_DATA
+  oracle_column: STOCH_K_14
+
+- column_id: stoch_d_14
+  derive_fn: derivers.indicators.stochastic
+  sources: {high: high_price, low: low_price, close: close_price}
+  params: {window: 14, smooth: 3, output: d}
+  lookback_rows: 30
+  oracle_table: STOCK_DATA
+  oracle_column: STOCH_D_14
+
+- column_id: williams_r_14
+  derive_fn: derivers.indicators.williams_r
+  sources: {high: high_price, low: low_price, close: close_price}
+  params: {window: 14}
+  lookback_rows: 14
+  oracle_table: STOCK_DATA
+  oracle_column: WILLIAMS_R_14
+
+- column_id: cci_20
+  derive_fn: derivers.indicators.cci
+  sources: {high: high_price, low: low_price, close: close_price}
+  params: {window: 20}
+  lookback_rows: 20
+  oracle_table: STOCK_DATA
+  oracle_column: CCI_20
+
+- column_id: gap_pct
+  derive_fn: derivers.indicators.gap_pct
+  sources: {open: open_price, close: close_price}
+  lookback_rows: 2
+  oracle_table: STOCK_DATA
+  oracle_column: GAP_PCT
+
+# --- Volatility
+
+- column_id: atr_14
+  derive_fn: derivers.indicators.atr
+  sources: {high: high_price, low: low_price, close: close_price}
+  params: {window: 14}
+  lookback_rows: 100
+  oracle_table: STOCK_DATA
+  oracle_column: ATR_14
+
+- column_id: atr_pct_14
+  derive_fn: derivers.indicators.atr
+  sources: {high: high_price, low: low_price, close: close_price}
+  params: {window: 14, pct: true}
+  lookback_rows: 100
+  oracle_table: STOCK_DATA
+  oracle_column: ATR_PCT_14
+
+- column_id: bb_upper_20
+  derive_fn: derivers.indicators.bollinger
+  sources: {close: close_price}
+  params: {window: 20, num_std: 2.0, output: upper}
+  lookback_rows: 20
+  oracle_table: STOCK_DATA
+  oracle_column: BB_UPPER_20
+
+- column_id: bb_lower_20
+  derive_fn: derivers.indicators.bollinger
+  sources: {close: close_price}
+  params: {window: 20, num_std: 2.0, output: lower}
+  lookback_rows: 20
+  oracle_table: STOCK_DATA
+  oracle_column: BB_LOWER_20
+
+- column_id: bb_pct_b_20
+  derive_fn: derivers.indicators.bollinger
+  sources: {close: close_price}
+  params: {window: 20, num_std: 2.0, output: pct_b}
+  lookback_rows: 20
+  oracle_table: STOCK_DATA
+  oracle_column: BB_PCT_B_20
+
+- column_id: bb_bandwidth_20
+  derive_fn: derivers.indicators.bollinger
+  sources: {close: close_price}
+  params: {window: 20, num_std: 2.0, output: bandwidth}
+  lookback_rows: 20
+  oracle_table: STOCK_DATA
+  oracle_column: BB_BANDWIDTH_20
+
+- column_id: hist_vol_20
+  derive_fn: derivers.indicators.hist_volatility
+  sources: {close: close_price}
+  params: {window: 20}
+  lookback_rows: 21
+  oracle_table: STOCK_DATA
+  oracle_column: HIST_VOL_20
+
+# --- Volume
+
+- column_id: mfi_14
+  derive_fn: derivers.indicators.mfi
+  sources: {high: high_price, low: low_price, close: close_price, volume: volume}
+  params: {window: 14}
+  lookback_rows: 15
+  oracle_table: STOCK_DATA
+  oracle_column: MFI_14
+
+- column_id: cmf_20
+  derive_fn: derivers.indicators.cmf
+  sources: {high: high_price, low: low_price, close: close_price, volume: volume}
+  params: {window: 20}
+  lookback_rows: 20
+  oracle_table: STOCK_DATA
+  oracle_column: CMF_20
+
+- column_id: vwap_20_dist_pct
+  derive_fn: derivers.indicators.vwap
+  sources: {high: high_price, low: low_price, close: close_price, volume: volume}
+  params: {window: 20, pct: true}
+  lookback_rows: 20
+  oracle_table: STOCK_DATA
+  oracle_column: VWAP_20_DIST_PCT
+
+- column_id: volume_ratio_20
+  derive_fn: derivers.indicators.volume_ratio
+  sources: {volume: volume}
+  params: {window: 20}
+  lookback_rows: 21
+  oracle_table: STOCK_DATA
+  oracle_column: VOLUME_RATIO_20
+
+# --- 52-week range (252 trading days)
+
+- column_id: high_52w
+  derive_fn: derivers.indicators.rolling_high
+  sources: {high: high_price}
+  params: {window: 252}
+  lookback_rows: 252
+  oracle_table: STOCK_DATA
+  oracle_column: HIGH_52W
+
+- column_id: low_52w
+  derive_fn: derivers.indicators.rolling_low
+  sources: {low: low_price}
+  params: {window: 252}
+  lookback_rows: 252
+  oracle_table: STOCK_DATA
+  oracle_column: LOW_52W
+
+- column_id: pct_from_52w_high
+  derive_fn: derivers.indicators.pct_from_high
+  sources: {high: high_price, close: close_price}
+  params: {window: 252}
+  lookback_rows: 252
+  oracle_table: STOCK_DATA
+  oracle_column: PCT_FROM_52W_HIGH
+
+- column_id: pct_from_52w_low
+  derive_fn: derivers.indicators.pct_from_low
+  sources: {low: low_price, close: close_price}
+  params: {window: 252}
+  lookback_rows: 252
+  oracle_table: STOCK_DATA
+  oracle_column: PCT_FROM_52W_LOW
+
+# --- Delivery: this week's average delivery / 52-week average delivery
+
+- column_id: deliv_ratio_5d_52w
+  derive_fn: derivers.indicators.delivery_ratio
+  sources: {delivery: deliv_qty}
+  params: {short: 5, long: 252}
+  lookback_rows: 252
+  oracle_table: STOCK_DATA
+  oracle_column: DELIV_RATIO_5D_52W

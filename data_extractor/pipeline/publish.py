@@ -10,7 +10,7 @@ import firebase_admin
 from firebase_admin import credentials, storage
 
 from . import oracle
-from .config import Attribute, Settings
+from .config import Column, Settings
 
 log = logging.getLogger(__name__)
 
@@ -19,7 +19,7 @@ class PublishError(Exception):
     """Report could not be built or uploaded (exit code 3)."""
 
 
-def build_csv(conn, attributes: list[Attribute], run_date: date, settings: Settings) -> Path:
+def build_csv(conn, attributes: list[Column], run_date: date, settings: Settings) -> Path:
     """Query Oracle for ``run_date`` and write ``stock_data_{date}.csv`` (raw values only)."""
     df = oracle.fetch_report(conn, attributes, run_date, settings)
     if df.empty:

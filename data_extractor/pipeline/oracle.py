@@ -4,12 +4,13 @@ from __future__ import annotations
 import logging
 import os
 from collections import defaultdict
-from datetime import date
+from datetime import date, timedelta
+from typing import Sequence
 
 import oracledb
 import pandas as pd
 
-from .config import Attribute, ConfigError, Settings
+from .config import Attribute, Column, ConfigError, Settings
 
 log = logging.getLogger(__name__)
 BATCH_SIZE = 1000
@@ -23,7 +24,7 @@ def connect(settings: Settings) -> oracledb.Connection:
     )
 
 
-def check_columns(conn: oracledb.Connection, attributes: list[Attribute], settings: Settings) -> None:
+def check_columns(conn: oracledb.Connection, attributes: Sequence[Column], settings: Settings) -> None:
     """Verify every target table/column (and key columns) exists in ALL_TAB_COLUMNS. Never alters schema."""
     key_cols = {settings.oracle.stock_id_column.upper(), settings.oracle.date_column.upper()}
     required: dict[str, set[str]] = defaultdict(lambda: set(key_cols))
@@ -90,7 +91,7 @@ def upsert_table(conn: oracledb.Connection, table: str, columns: list[tuple[str,
     return len(rows)
 
 
-def build_report_sql(attributes: list[Attribute], settings: Settings) -> str:
+def build_report_sql(attributes: Sequence[Column], settings: Settings) -> str:
     """SQL that full-outer-joins every target table on stock_id for one date (bind: run_date)."""
     o = settings.oracle
     tables = list(dict.fromkeys(a.oracle_table for a in attributes))
@@ -115,7 +116,7 @@ def build_report_sql(attributes: list[Attribute], settings: Settings) -> str:
     return f"SELECT {', '.join(select)}\nFROM {from_clause}\nORDER BY 1"
 
 
-def fetch_report(conn: oracledb.Connection, attributes: list[Attribute], run_date: date,
+def fetch_report(conn: oracledb.Connection, attributes: Sequence[Column], run_date: date,
                  settings: Settings) -> pd.DataFrame:
     """Return ``stock_id`` + one column per attribute (named by column_id, config order)."""
     sql = build_report_sql(attributes, settings)
@@ -123,3 +124,38 @@ def fetch_report(conn: oracledb.Connection, attributes: list[Attribute], run_dat
         cur.execute(sql, {"run_date": run_date})
         rows = cur.fetchall()
     return pd.DataFrame(rows, columns=["stock_id", *(a.column_id for a in attributes)])
+
+
+def fetch_history(conn: oracledb.Connection, sources: Sequence[Attribute], run_date: date, n_rows: int,
+                  settings: Settings) -> pd.DataFrame:
+    """Last ``n_rows`` rows per stock up to and including ``run_date`` for the given raw attributes.
+
+    Returns ``stock_id``, ``as_of_date`` and one numeric column per source (named by column_id),
+    sorted by stock then date. Only dates that have rows count, so holidays never create gaps.
+    """
+    o = settings.oracle
+    since = run_date - timedelta(days=n_rows * 2 + 14)  # generous calendar bound so the scan stays small
+    frames = []
+    for table in dict.fromkeys(a.oracle_table for a in sources):
+        attrs = [a for a in sources if a.oracle_table == table]
+        cols = ", ".join(f"c{i}" for i in range(len(attrs)))
+        sel = ", ".join(f"{a.oracle_column} AS c{i}" for i, a in enumerate(attrs))
+        sql = (
+            f"SELECT stock_id, as_of_date, {cols} FROM (\n"
+            f"  SELECT {o.stock_id_column} AS stock_id, {o.date_column} AS as_of_date, {sel},\n"
+            f"         ROW_NUMBER() OVER (PARTITION BY {o.stock_id_column} ORDER BY {o.date_column} DESC) AS rn\n"
+            f"  FROM {table} WHERE {o.date_column} <= :run_date AND {o.date_column} >= :since)\n"
+            f"WHERE rn <= :n_rows ORDER BY stock_id, as_of_date"
+        )
+        with conn.cursor() as cur:
+            cur.execute(sql, {"run_date": run_date, "since": since, "n_rows": n_rows})
+            rows = cur.fetchall()
+        frames.append(pd.DataFrame(rows, columns=["stock_id", "as_of_date", *(a.column_id for a in attrs)]))
+
+    out = frames[0]
+    for extra in frames[1:]:
+        out = out.merge(extra, on=["stock_id", "as_of_date"], how="outer")
+    out["as_of_date"] = pd.to_datetime(out["as_of_date"])
+    for a in sources:
+        out[a.column_id] = pd.to_numeric(out[a.column_id], errors="coerce")  # NULL -> NaN
+    return out.sort_values(["stock_id", "as_of_date"]).reset_index(drop=True)

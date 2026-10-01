@@ -2,7 +2,9 @@
 
 Config-driven pipeline: for a run date, get each attribute's source document (offline copy first,
 download otherwise), extract **raw** per-stock values, MERGE them into Oracle, then build one CSV
-from Oracle and upload it to Firebase Storage. No scoring, ranking or totals happen here.
+from Oracle and upload it to Firebase Storage. Technical indicators (RSI, moving averages, ...) and a
+delivery ratio are then **derived** from the stored history (see *Derived fields*). No scoring, ranking
+or totals happen here.
 
 ## Setup
 
@@ -18,7 +20,12 @@ $env:ORACLE_USER = "..."
 $env:ORACLE_PASSWORD = "..."
 $env:ORACLE_DSN = "host:1521/service"
 $env:GOOGLE_APPLICATION_CREDENTIALS = "C:\secrets\service-account.json"   # not needed with --skip-upload
+$env:FIREBASE_BUCKET = "my-bucket.appspot.com"                                # not needed with --skip-upload
 ```
+
+Instead of exporting variables you can put them in a `.env` file in the project root (loaded by
+python-dotenv; keep it out of version control). `firebase.bucket` in `settings.yaml` holds the **name of
+the environment variable** that contains the bucket (default `FIREBASE_BUCKET`), not the bucket itself.
 
 To persist a variable across sessions use `setx NAME "value"` (then open a new terminal), or set it in
 *System Properties > Environment Variables*. In `cmd.exe` use `set NAME=value`.
@@ -30,7 +37,7 @@ python3 -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
 
 export ORACLE_USER=... ORACLE_PASSWORD=... ORACLE_DSN=host:1521/service
-export GOOGLE_APPLICATION_CREDENTIALS=/path/to/service-account.json   # not needed with --skip-upload
+export GOOGLE_APPLICATION_CREDENTIALS=/path/to/service-account.json FIREBASE_BUCKET=my-bucket.appspot.com
 ```
 
 python-oracledb runs in "thin" mode by default, so **no Oracle Client install is needed** on Windows.
@@ -67,7 +74,13 @@ Relative paths in settings resolve against the project root.
   absent column (the outer join). Only columns produced in the run are touched, so `--only` never
   affects other columns.
 - If any attribute fails, CSV build **and** upload are skipped unless `upload_on_partial_failure: true`.
-- The CSV always contains every configured attribute (even with `--only`), read from Oracle.
+- The CSV always contains every configured attribute, raw and derived (even with `--only`), read from Oracle.
+- Derived fields read their history **from Oracle**, so the needed days must already be stored (see
+  *Backfilling history*). Prices are as stored (unadjusted), so splits/bonus issues distort indicators
+  around those dates. `lookback_rows` counts rows (trading days present), so holidays are not an issue.
+- A derived value is **NULL (blank in the CSV)** whenever it cannot be computed: too little history, a NULL
+  input (e.g. delivery shown as `-`), a zero denominator, or no row for the run date. It is never filled
+  with 0 and never carried over from an earlier date.
 
 ## Running
 
@@ -77,7 +90,11 @@ python main.py --date 2026-09-25              # backdated (uses offline copy, el
 python main.py --force-download               # ignore offline copies
 python main.py --only close_price volume      # subset of attributes ("a,b" also works; quote it in PowerShell)
 python main.py --skip-upload                  # still writes Oracle + local CSV
+python main.py --skip-derived                 # raw attributes only
+python main.py --only rsi_14 sma_50           # derived only (reads today's raw values already in Oracle)
 ```
+
+`--only` with raw ids does not recompute derived fields; list the derived ids too (or run without `--only`).
 
 Exit codes: `0` success, `1` partial failure, `2` config/CLI/schema error, `3` fatal (DB/Firebase).
 Logs go to stdout and `logs/run_{date}.log`. Output: `data/reports/stock_data_{date}.csv` and
@@ -86,6 +103,65 @@ Logs go to stdout and `logs/run_{date}.log`. Output: `data/reports/stock_data_{d
 Backfills are safe: Oracle rows and the Firebase path are keyed by the run date, and re-running a date
 is idempotent. If the source no longer serves an old date and no offline copy exists, that group fails
 normally (exit 1). To backfill from files you already have, drop them at the rendered `offline_path`.
+
+## Derived fields (technical indicators)
+
+`config/derived.yaml` defines fields computed **after** the raw values are written, from Oracle history:
+
+```yaml
+- column_id: rsi_14
+  derive_fn: derivers.indicators.rsi          # fn(history, run_date, **params) -> DataFrame[stock_id, value]
+  sources: {close: close_price}               # role -> raw column_id from attributes.yaml
+  params: {window: 14}
+  lookback_rows: 100                          # trading-day rows of history handed to the function
+  oracle_table: STOCK_DATA
+  oracle_column: RSI_14
+```
+
+Flow: raw write commits -> one history query (`ROW_NUMBER` per stock, last N rows up to the run date) ->
+each derived field gets its slice -> results are validated and written with one MERGE per table.
+A derived field is computed for exactly the stocks that have a row on the run date. If one of its source
+attributes failed in the same run, it is marked failed instead of using stale data.
+
+| Group | `derive_fn` (in `derivers/indicators.py`) | Roles needed |
+| --- | --- | --- |
+| Trend | `sma`, `ema`, `close_vs_sma`, `sma_ratio`, `macd` (line/signal/hist), `adx` (adx/plus_di/minus_di) | close (+high, low for adx) |
+| Momentum | `rsi`, `roc`, `stochastic` (k/d), `williams_r`, `cci`, `gap_pct` | close (+high, low / open) |
+| Volatility | `atr` (optionally % of close), `bollinger` (upper/lower/pct_b/bandwidth), `hist_volatility` | close (+high, low) |
+| Volume | `mfi`, `cmf`, `vwap` (optionally distance %), `volume_ratio` | high, low, close, volume |
+| 52-week range | `rolling_high`, `rolling_low`, `pct_from_high`, `pct_from_low` (window 252) | high / low / close |
+| Delivery | `delivery_ratio` = avg delivery of last 5 rows / avg of last 252 rows | delivery |
+
+The shipped file defines 36 fields. `deliv_ratio_5d_52w` is the "week's delivery over 52-week delivery"
+ratio, built on `DELIV_QTY`; for a percentage-based ratio add a raw `DELIV_PER` attribute and point the
+`delivery` role at it. Dependencies of each function (params, defaults) are in its docstring.
+
+Rules of thumb for `lookback_rows`: SMA/Bollinger/etc. = the window; RSI, ATR, ADX, EMA, MACD = 3-5x the
+window (smoothing is seeded with an SMA, so more history makes the seed irrelevant); 52-week fields = 252
+(the first value appears after 252 stored trading days).
+
+**Adding an indicator:** write `def my_indicator(hist, run_date, window=14)` in `derivers/` (use `_apply`
+in `indicators.py` as a template: it hands you NumPy arrays per role and returns NaN when data is missing),
+then add an entry to `derived.yaml` and the Oracle column.
+
+### Oracle columns
+
+`sql/add_columns.sql` adds the new raw columns (`OPEN_PRICE`, `HIGH_PRICE`, `LOW_PRICE`, `DELIV_QTY`) and
+all 36 derived columns to `STOCK_DATA` as `NUMBER`. The pipeline never alters the schema; a missing column
+aborts the run with exit code 2 before any download.
+
+### Backfilling history
+
+Indicators need prior days in Oracle. Load them oldest to newest (ideally from stored bhavcopies in
+`offline_root`), raw first, then compute derived fields as you go:
+
+```bash
+python main.py --date 2025-09-01 --skip-upload      # repeat for each trading day, oldest first
+```
+
+Each run computes that day's indicators from the days already stored, so in date order the indicators
+are correct for every day. 252 stored days are needed before the 52-week fields appear (blank before that).
+To fill derived fields for days whose raw values are already stored, use `--only <derived ids>` per date.
 
 ## Attribute config
 
@@ -114,6 +190,6 @@ in one MERGE.
    already fetches, reuse the same `offline_path`, `download_fn` and `download_url`.
 4. Make sure the Oracle column exists, then run `python main.py --only your_column_id --skip-upload`.
 
-`downloaders/nse.py` + `processors/bhavcopy.py` are the worked example: two attributes
-(`close_price`, `volume`) share one bhavcopy file, so it is downloaded once and read twice.
+`downloaders/nse.py` + `processors/bhavcopy.py` are the worked example: six attributes (close, volume,
+open, high, low, delivery quantity) share one bhavcopy file, so it is downloaded once and read six times.
 Adjust the header map in `processors/bhavcopy.py` to your real file layout.

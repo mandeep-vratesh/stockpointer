@@ -1,4 +1,4 @@
-"""Example processors: two attributes read the SAME bhavcopy file (grouped -> downloaded once).
+"""Example processors: several attributes read the SAME bhavcopy file (grouped -> downloaded once).
 
 Raw extraction only. Adjust the column-name map to match your real source.
 """
@@ -12,8 +12,12 @@ import pandas as pd
 _COLUMNS = {
     "symbol": ("SYMBOL",),
     "series": ("SERIES",),
+    "open": ("OPEN_PRICE",),
+    "high": ("HIGH_PRICE",),
+    "low": ("LOW_PRICE",),
     "close": ("CLOSE_PRICE",),
     "volume": ("TTL_TRD_QNTY",),
+    "deliv": ("DELIV_QTY",),
 }
 
 
@@ -46,3 +50,23 @@ def extract_close(file_path: str, run_date: date) -> pd.DataFrame:
 def extract_volume(file_path: str, run_date: date) -> pd.DataFrame:
     """Raw traded quantity per stock."""
     return _extract(file_path, "volume")
+
+
+def extract_open(file_path: str, run_date: date) -> pd.DataFrame:
+    """Raw opening price per stock."""
+    return _extract(file_path, "open")
+
+
+def extract_high(file_path: str, run_date: date) -> pd.DataFrame:
+    """Raw day high per stock."""
+    return _extract(file_path, "high")
+
+
+def extract_low(file_path: str, run_date: date) -> pd.DataFrame:
+    """Raw day low per stock."""
+    return _extract(file_path, "low")
+
+
+def extract_delivery(file_path: str, run_date: date) -> pd.DataFrame:
+    """Raw delivered quantity per stock (blank where the exchange reports '-')."""
+    return _extract(file_path, "deliv")

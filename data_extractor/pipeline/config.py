@@ -8,7 +8,7 @@ import string
 from dataclasses import dataclass, field, fields
 from datetime import date
 from pathlib import Path
-from typing import Any, Callable
+from typing import Any, Callable, Sequence, Union
 
 import yaml
 
@@ -70,6 +70,24 @@ class Attribute:
     oracle_column: str   # normalised to upper case
     download: Callable[..., None] = field(compare=False, repr=False)
     process: Callable[..., Any] = field(compare=False, repr=False)
+
+
+@dataclass(frozen=True)
+class DerivedAttribute:
+    """A field computed from stored raw attributes (e.g. RSI of close), not from a source document."""
+    column_id: str
+    derive_fn: str
+    lookback_rows: int                                       # trading-day rows of history per stock
+    oracle_table: str
+    oracle_column: str
+    sources: dict[str, str] = field(compare=False)           # role (close/high/...) -> raw column_id
+    params: dict[str, Any] = field(compare=False)            # keyword args for derive_fn
+    derive: Callable[..., Any] = field(compare=False, repr=False)
+
+
+Column = Union[Attribute, DerivedAttribute]  # anything that maps to one Oracle column
+DERIVED_KEYS = ("column_id", "derive_fn", "sources", "lookback_rows", "oracle_table", "oracle_column")
+_WINDOW_PARAMS = ("window", "slow", "long")  # params that imply a minimum lookback_rows
 
 
 # --------------------------------------------------------------------------- helpers
@@ -225,22 +243,101 @@ def load_attributes(path: Path, settings: Settings) -> list[Attribute]:
         except ConfigError as exc:
             errors.append(f"{label}: {exc}")
 
-    seen_ids: set[str] = set()
-    seen_cols: set[tuple[str, str]] = set()
-    key_cols = {settings.oracle.stock_id_column.upper(), settings.oracle.date_column.upper()}
-    for a in attrs:
-        if a.column_id in seen_ids:
-            errors.append(f"duplicate column_id {a.column_id!r}")
-        seen_ids.add(a.column_id)
-        pair = (a.oracle_table, a.oracle_column)
-        if pair in seen_cols:
-            errors.append(f"duplicate target {a.oracle_table}.{a.oracle_column}")
-        seen_cols.add(pair)
-        if a.column_id == "stock_id":
-            errors.append("column_id 'stock_id' is reserved for the CSV key column")
-        if a.oracle_column in key_cols:
-            errors.append(f"{a.column_id}: oracle_column {a.oracle_column} is a key column")
-
+    errors += _uniqueness_errors(attrs, settings)
     if errors:
         raise ConfigError("Invalid attributes config:\n  - " + "\n  - ".join(errors))
     return attrs
+
+
+def _uniqueness_errors(columns: Sequence[Column], settings: Settings, existing: Sequence[Column] = ()) -> list[str]:
+    """column_id and (table, column) must be unique across ``existing`` + ``columns``; key columns are reserved."""
+    errors: list[str] = []
+    seen_ids = {c.column_id for c in existing}
+    seen_cols = {(c.oracle_table, c.oracle_column) for c in existing}
+    key_cols = {settings.oracle.stock_id_column.upper(), settings.oracle.date_column.upper()}
+    for c in columns:
+        if c.column_id in seen_ids:
+            errors.append(f"duplicate column_id {c.column_id!r}")
+        seen_ids.add(c.column_id)
+        pair = (c.oracle_table, c.oracle_column)
+        if pair in seen_cols:
+            errors.append(f"duplicate target {c.oracle_table}.{c.oracle_column}")
+        seen_cols.add(pair)
+        if c.column_id == "stock_id":
+            errors.append("column_id 'stock_id' is reserved for the CSV key column")
+        if c.oracle_column in key_cols:
+            errors.append(f"{c.column_id}: oracle_column {c.oracle_column} is a key column")
+    return errors
+
+
+# --------------------------------------------------------------------------- derived attributes
+def _build_derived(entry: Any, raw_ids: set[str]) -> DerivedAttribute:
+    if not isinstance(entry, dict):
+        raise ConfigError("must be a mapping")
+    keys = set(entry)
+    missing = [k for k in DERIVED_KEYS if k not in keys]
+    unknown = sorted(keys - set(DERIVED_KEYS) - {"params"})
+    if missing or unknown:
+        raise ConfigError(f"missing keys {missing}, unknown keys {unknown}")
+    for k in ("column_id", "derive_fn", "oracle_table", "oracle_column"):
+        if not isinstance(entry[k], str) or not entry[k].strip():
+            raise ConfigError(f"{k} must be a non-empty string")
+    for k in ("oracle_table", "oracle_column"):
+        if not IDENT_RE.match(entry[k]):
+            raise ConfigError(f"{k}={entry[k]!r} is not a valid identifier")
+
+    sources = entry["sources"]
+    if not isinstance(sources, dict) or not sources:
+        raise ConfigError("sources must be a non-empty mapping of role -> raw column_id")
+    for role, col in sources.items():
+        if not isinstance(role, str) or not role.isidentifier():
+            raise ConfigError(f"source role {role!r} must be a simple name such as 'close'")
+        if col not in raw_ids:
+            raise ConfigError(f"source {role}: {col!r} is not a column_id in attributes.yaml")
+
+    params = entry.get("params") or {}
+    if not isinstance(params, dict) or not all(isinstance(k, str) for k in params):
+        raise ConfigError("params must be a mapping with string keys")
+
+    lookback = entry["lookback_rows"]
+    if isinstance(lookback, bool) or not isinstance(lookback, int) or lookback < 1:
+        raise ConfigError("lookback_rows must be an integer >= 1")
+    needed = max((v for k, v in params.items() if k in _WINDOW_PARAMS and isinstance(v, int)), default=1)
+    if lookback < needed:
+        raise ConfigError(f"lookback_rows={lookback} is smaller than the window in params ({needed})")
+
+    return DerivedAttribute(
+        column_id=entry["column_id"],
+        derive_fn=entry["derive_fn"],
+        lookback_rows=lookback,
+        oracle_table=entry["oracle_table"].upper(),
+        oracle_column=entry["oracle_column"].upper(),
+        sources=dict(sources),
+        params=dict(params),
+        derive=resolve_callable(entry["derive_fn"]),
+    )
+
+
+def load_derived(path: Path, settings: Settings, raw: Sequence[Attribute]) -> list[DerivedAttribute]:
+    """Load config/derived.yaml (optional: a missing or empty file means no derived fields)."""
+    if not Path(path).is_file():
+        return []
+    data = _read_yaml(path)
+    if not data:
+        return []
+    if not isinstance(data, list):
+        raise ConfigError(f"{path} must contain a list of derived attributes")
+
+    raw_ids = {a.column_id for a in raw}
+    errors: list[str] = []
+    derived: list[DerivedAttribute] = []
+    for i, entry in enumerate(data, 1):
+        label = f"entry #{i}" + (f" ({entry['column_id']})" if isinstance(entry, dict) and "column_id" in entry else "")
+        try:
+            derived.append(_build_derived(entry, raw_ids))
+        except ConfigError as exc:
+            errors.append(f"{label}: {exc}")
+    errors += _uniqueness_errors(derived, settings, existing=raw)
+    if errors:
+        raise ConfigError("Invalid derived config:\n  - " + "\n  - ".join(errors))
+    return derived
