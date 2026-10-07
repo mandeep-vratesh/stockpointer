@@ -1,4 +1,5 @@
 import raw from './config/dashboard.config.json';
+import groupsRaw from './config/symbolGroups.config.json';
 
 export type Op = 'lt' | 'lte' | 'gt' | 'gte' | 'eq' | 'neq' | 'between' | 'in' | 'ltField' | 'gtField';
 export type Condition = {
@@ -12,12 +13,24 @@ export type ColumnCfg = {
 };
 export type GroupCfg = { id: string; label: string; description: string; defaultWeight: number; columns: ColumnCfg[] };
 export type DashboardConfig = {
-  dataPath: string; folderRegex: string; fileName: string; symbolField: string; groupMembershipField: string;
-  symbolGroups: { id: string; label: string }[]; defaultSymbolGroup: string;
+  dataPath: string; folderRegex: string; fileName: string; symbolField: string;
   fixedColumns: { symbol: { label: string; description: string }; totalPoints: { label: string; description: string } };
   groups: GroupCfg[];
 };
 export const config = raw as unknown as DashboardConfig;
+
+export type IndexGroup = { id: string; label: string; symbols: string[] };
+export type Segment = { id: string; label: string; indices: IndexGroup[] };
+export type SymbolGroupsConfig = { generatedAt?: string | null; defaultGroup?: string | null; segments: Segment[] };
+export const groupsConfig = groupsRaw as unknown as SymbolGroupsConfig;
+
+export const ALL_ID = 'ALL';
+const membership = new Map<string, Set<string>>(
+  groupsConfig.segments.flatMap((s) => s.indices.map((i) => [i.id, new Set(i.symbols.map((x) => x.toUpperCase()))] as const))
+);
+export const isValidGroup = (id: unknown): id is string => id === ALL_ID || (typeof id === 'string' && membership.has(id));
+export const inGroup = (id: string, symbol: string) => id === ALL_ID || !!membership.get(id)?.has(symbol.toUpperCase());
+export const DEFAULT_GROUP: string = isValidGroup(groupsConfig.defaultGroup) ? groupsConfig.defaultGroup : ALL_ID;
 
 export const NONE = '-none-';
 export type Filter = { min?: number; max?: number; contains?: string };
@@ -36,5 +49,5 @@ export type Handlers = {
 };
 export type Meta = { settings: Settings; h: Handlers };
 export type DataRow = Record<string, unknown>;
-export type Row = { symbol: string; groups: string[]; data: DataRow };
+export type Row = { symbol: string; data: DataRow };
 export type Scored = { row: Row; colPts: Record<string, number>; groupPoints: Record<string, number>; total: number };

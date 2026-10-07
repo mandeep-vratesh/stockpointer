@@ -7,7 +7,7 @@ import { rank, scoreRow } from './scoring/score';
 import { useUserSettings } from './settings/useUserSettings';
 import { SymbolGroupBar } from './components/SymbolGroupBar';
 import { ScoreTable } from './components/ScoreTable';
-import { config, Row } from './types';
+import { config, inGroup, Row } from './types';
 import s from './styles.module.css';
 
 type DataState =
@@ -33,7 +33,7 @@ function Dashboard({ user }: { user: User }) {
   const scored = useMemo(() => {
     if (data.status !== 'ready' || !st.group) return [];
     return data.rows
-      .filter((r) => r.groups.includes(st.group!))
+      .filter((r) => inGroup(st.group!, r.symbol))
       .map((r) => scoreRow(r, config.groups, { groupWeights, columnWeights, columnConditions }))
       .sort(rank);
   }, [data, st.group, groupWeights, columnWeights, columnConditions]);

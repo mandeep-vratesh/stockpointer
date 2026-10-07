@@ -3,61 +3,1051 @@
   "folderRegex": "^(\\d{4}-\\d{2}-\\d{2})$",
   "fileName": "stock_data_{date}.csv",
   "symbolField": "stock_id",
-  "groupMembershipField": "indices",
-  "symbolGroups": [
-    { "id": "NIFTY50", "label": "NIFTY50" },
-    { "id": "HEALTHCARE", "label": "Healthcare" }
-  ],
-  "defaultSymbolGroup": "NIFTY50",
   "fixedColumns": {
-    "symbol": { "label": "Symbol", "description": "Ticker symbol of the stock." },
-    "totalPoints": { "label": "Total Points", "description": "Sum over groups of group weight × group points. Stocks are ranked by this value." }
+    "symbol": {
+      "label": "Symbol",
+      "description": "Ticker symbol of the stock."
+    },
+    "totalPoints": {
+      "label": "Total Points",
+      "description": "Sum over groups of group weight × group points. Stocks are ranked by this value."
+    }
   },
   "groups": [
     {
-      "id": "technicals", "label": "Technicals", "description": "Price and momentum indicators.", "defaultWeight": 1,
+      "id": "trend",
+      "label": "Trend",
+      "description": "Trend-following indicators: moving averages, MACD and ADX/DI.",
+      "defaultWeight": 1,
       "columns": [
-        { "id": "rsi", "field": "rsi", "label": "RSI", "description": "14-day Relative Strength Index.", "type": "number",
-          "format": { "decimals": 1 }, "defaultWeight": 2, "defaultCondition": "lt30",
+        {
+          "id": "sma_20",
+          "field": "sma_20",
+          "label": "SMA 20",
+          "description": "20-day simple moving average of close.",
+          "type": "number",
+          "format": {
+            "decimals": 2
+          },
+          "defaultWeight": 1,
+          "defaultCondition": "",
           "conditions": [
-            { "id": "lt30", "label": "< 30 (oversold)", "op": "lt", "value": 30 },
-            { "id": "lt40", "label": "< 40", "op": "lt", "value": 40 },
-            { "id": "gt70", "label": "> 70 (overbought)", "op": "gt", "value": 70 }
-          ] },
-        { "id": "pctFromHigh", "field": "pctFromHigh", "label": "% from 52w high", "description": "Distance from the 52-week high, in percent.", "type": "number",
-          "format": { "decimals": 1, "suffix": "%" }, "defaultWeight": 1, "defaultCondition": "within10",
+            {
+              "id": "above",
+              "label": "Close above SMA 20",
+              "op": "ltField",
+              "field": "close_price"
+            },
+            {
+              "id": "below",
+              "label": "Close below SMA 20",
+              "op": "gtField",
+              "field": "close_price"
+            }
+          ]
+        },
+        {
+          "id": "sma_50",
+          "field": "sma_50",
+          "label": "SMA 50",
+          "description": "50-day simple moving average of close.",
+          "type": "number",
+          "format": {
+            "decimals": 2
+          },
+          "defaultWeight": 1,
+          "defaultCondition": "",
           "conditions": [
-            { "id": "within10", "label": "within 10% of high", "op": "gte", "value": -10 },
-            { "id": "between", "label": "between -20% and -10%", "op": "between", "min": -20, "max": -10 }
-          ] }
+            {
+              "id": "above",
+              "label": "Close above SMA 50",
+              "op": "ltField",
+              "field": "close_price"
+            },
+            {
+              "id": "below",
+              "label": "Close below SMA 50",
+              "op": "gtField",
+              "field": "close_price"
+            }
+          ]
+        },
+        {
+          "id": "sma_200",
+          "field": "sma_200",
+          "label": "SMA 200",
+          "description": "200-day simple moving average of close.",
+          "type": "number",
+          "format": {
+            "decimals": 2
+          },
+          "defaultWeight": 1,
+          "defaultCondition": "above",
+          "conditions": [
+            {
+              "id": "above",
+              "label": "Close above SMA 200",
+              "op": "ltField",
+              "field": "close_price"
+            },
+            {
+              "id": "below",
+              "label": "Close below SMA 200",
+              "op": "gtField",
+              "field": "close_price"
+            }
+          ]
+        },
+        {
+          "id": "ema_20",
+          "field": "ema_20",
+          "label": "EMA 20",
+          "description": "20-day exponential moving average of close.",
+          "type": "number",
+          "format": {
+            "decimals": 2
+          },
+          "defaultWeight": 1,
+          "defaultCondition": "",
+          "conditions": [
+            {
+              "id": "above",
+              "label": "Close above EMA 20",
+              "op": "ltField",
+              "field": "close_price"
+            },
+            {
+              "id": "below",
+              "label": "Close below EMA 20",
+              "op": "gtField",
+              "field": "close_price"
+            }
+          ]
+        },
+        {
+          "id": "ema_50",
+          "field": "ema_50",
+          "label": "EMA 50",
+          "description": "50-day exponential moving average of close.",
+          "type": "number",
+          "format": {
+            "decimals": 2
+          },
+          "defaultWeight": 1,
+          "defaultCondition": "",
+          "conditions": [
+            {
+              "id": "above",
+              "label": "Close above EMA 50",
+              "op": "ltField",
+              "field": "close_price"
+            },
+            {
+              "id": "below",
+              "label": "Close below EMA 50",
+              "op": "gtField",
+              "field": "close_price"
+            }
+          ]
+        },
+        {
+          "id": "close_vs_sma_50",
+          "field": "close_vs_sma_50",
+          "label": "Close vs SMA 50",
+          "description": "Close relative to its 50-day SMA (positive = above).",
+          "type": "number",
+          "format": {
+            "decimals": 2,
+            "suffix": "%"
+          },
+          "defaultWeight": 1,
+          "defaultCondition": "gt0",
+          "conditions": [
+            {
+              "id": "gt0",
+              "label": "> 0 (above SMA 50)",
+              "op": "gt",
+              "value": 0
+            },
+            {
+              "id": "btw0_10",
+              "label": "0 to 10 (above, not stretched)",
+              "op": "between",
+              "min": 0,
+              "max": 10
+            },
+            {
+              "id": "lt0",
+              "label": "< 0 (below SMA 50)",
+              "op": "lt",
+              "value": 0
+            }
+          ]
+        },
+        {
+          "id": "sma_50_200_ratio",
+          "field": "sma_50_200_ratio",
+          "label": "SMA 50/200",
+          "description": "SMA 50 divided by SMA 200. Above 1 means the 50-day average is above the 200-day.",
+          "type": "number",
+          "format": {
+            "decimals": 3
+          },
+          "defaultWeight": 1,
+          "defaultCondition": "gt1",
+          "conditions": [
+            {
+              "id": "gt1",
+              "label": "> 1 (50 above 200)",
+              "op": "gt",
+              "value": 1
+            },
+            {
+              "id": "lt1",
+              "label": "< 1 (50 below 200)",
+              "op": "lt",
+              "value": 1
+            }
+          ]
+        },
+        {
+          "id": "macd_line",
+          "field": "macd_line",
+          "label": "MACD line",
+          "description": "MACD line (EMA 12 − EMA 26) as a percent of price.",
+          "type": "number",
+          "format": {
+            "decimals": 2,
+            "suffix": "%"
+          },
+          "defaultWeight": 1,
+          "defaultCondition": "",
+          "conditions": [
+            {
+              "id": "gt0",
+              "label": "> 0",
+              "op": "gt",
+              "value": 0
+            },
+            {
+              "id": "lt0",
+              "label": "< 0",
+              "op": "lt",
+              "value": 0
+            }
+          ]
+        },
+        {
+          "id": "macd_signal",
+          "field": "macd_signal",
+          "label": "MACD signal",
+          "description": "9-day EMA of the MACD line, as a percent of price.",
+          "type": "number",
+          "format": {
+            "decimals": 2,
+            "suffix": "%"
+          },
+          "defaultWeight": 1,
+          "defaultCondition": "",
+          "conditions": [
+            {
+              "id": "line_above",
+              "label": "MACD line above signal",
+              "op": "ltField",
+              "field": "macd_line"
+            },
+            {
+              "id": "line_below",
+              "label": "MACD line below signal",
+              "op": "gtField",
+              "field": "macd_line"
+            }
+          ]
+        },
+        {
+          "id": "macd_hist",
+          "field": "macd_hist",
+          "label": "MACD histogram",
+          "description": "MACD line minus signal line, as a percent of price.",
+          "type": "number",
+          "format": {
+            "decimals": 2,
+            "suffix": "%"
+          },
+          "defaultWeight": 1,
+          "defaultCondition": "gt0",
+          "conditions": [
+            {
+              "id": "gt0",
+              "label": "> 0 (bullish)",
+              "op": "gt",
+              "value": 0
+            },
+            {
+              "id": "lt0",
+              "label": "< 0 (bearish)",
+              "op": "lt",
+              "value": 0
+            }
+          ]
+        },
+        {
+          "id": "adx_14",
+          "field": "adx_14",
+          "label": "ADX 14",
+          "description": "Average Directional Index: trend strength regardless of direction.",
+          "type": "number",
+          "format": {
+            "decimals": 1
+          },
+          "defaultWeight": 1,
+          "defaultCondition": "gt25",
+          "conditions": [
+            {
+              "id": "gt20",
+              "label": "> 20",
+              "op": "gt",
+              "value": 20
+            },
+            {
+              "id": "gt25",
+              "label": "> 25 (trending)",
+              "op": "gt",
+              "value": 25
+            },
+            {
+              "id": "gt40",
+              "label": "> 40 (strong trend)",
+              "op": "gt",
+              "value": 40
+            }
+          ]
+        },
+        {
+          "id": "plus_di_14",
+          "field": "plus_di_14",
+          "label": "+DI 14",
+          "description": "Positive directional indicator: upward pressure.",
+          "type": "number",
+          "format": {
+            "decimals": 1
+          },
+          "defaultWeight": 1,
+          "defaultCondition": "above_minus",
+          "conditions": [
+            {
+              "id": "above_minus",
+              "label": "+DI above −DI",
+              "op": "gtField",
+              "field": "minus_di_14"
+            }
+          ]
+        },
+        {
+          "id": "minus_di_14",
+          "field": "minus_di_14",
+          "label": "−DI 14",
+          "description": "Negative directional indicator: downward pressure.",
+          "type": "number",
+          "format": {
+            "decimals": 1
+          },
+          "defaultWeight": 1,
+          "defaultCondition": "",
+          "conditions": [
+            {
+              "id": "above_plus",
+              "label": "−DI above +DI",
+              "op": "gtField",
+              "field": "plus_di_14"
+            }
+          ]
+        }
       ]
     },
     {
-      "id": "fundamentals", "label": "Fundamentals", "description": "Valuation and profitability.", "defaultWeight": 1.5,
+      "id": "momentum",
+      "label": "Momentum",
+      "description": "Oscillators that measure speed and exhaustion of price moves.",
+      "defaultWeight": 1,
       "columns": [
-        { "id": "pe", "field": "pe", "label": "P/E", "description": "Price to earnings ratio.", "type": "number",
-          "format": { "decimals": 1 }, "defaultWeight": 1, "defaultCondition": "lt20",
+        {
+          "id": "rsi_14",
+          "field": "rsi_14",
+          "label": "RSI 14",
+          "description": "14-day Relative Strength Index (0–100).",
+          "type": "number",
+          "format": {
+            "decimals": 1
+          },
+          "defaultWeight": 1,
+          "defaultCondition": "btw40_70",
           "conditions": [
-            { "id": "lt20", "label": "< 20", "op": "lt", "value": 20 },
-            { "id": "lt15", "label": "< 15", "op": "lt", "value": 15 }
-          ] },
-        { "id": "roe", "field": "roe", "label": "ROE", "description": "Return on equity, in percent.", "type": "number",
-          "format": { "decimals": 1, "suffix": "%" }, "defaultWeight": 1, "defaultCondition": "gt15",
+            {
+              "id": "lt30",
+              "label": "< 30 (oversold)",
+              "op": "lt",
+              "value": 30
+            },
+            {
+              "id": "lt40",
+              "label": "< 40",
+              "op": "lt",
+              "value": 40
+            },
+            {
+              "id": "btw40_70",
+              "label": "40 to 70 (healthy)",
+              "op": "between",
+              "min": 40,
+              "max": 70
+            },
+            {
+              "id": "gt70",
+              "label": "> 70 (overbought)",
+              "op": "gt",
+              "value": 70
+            }
+          ]
+        },
+        {
+          "id": "roc_12",
+          "field": "roc_12",
+          "label": "ROC 12",
+          "description": "12-day rate of change of close.",
+          "type": "number",
+          "format": {
+            "decimals": 2,
+            "suffix": "%"
+          },
+          "defaultWeight": 1,
+          "defaultCondition": "gt0",
           "conditions": [
-            { "id": "gt15", "label": "> 15%", "op": "gt", "value": 15 },
-            { "id": "gt20", "label": "> 20%", "op": "gt", "value": 20 }
-          ] }
+            {
+              "id": "gt0",
+              "label": "> 0",
+              "op": "gt",
+              "value": 0
+            },
+            {
+              "id": "gt5",
+              "label": "> 5",
+              "op": "gt",
+              "value": 5
+            },
+            {
+              "id": "lt0",
+              "label": "< 0",
+              "op": "lt",
+              "value": 0
+            }
+          ]
+        },
+        {
+          "id": "stoch_k_14",
+          "field": "stoch_k_14",
+          "label": "Stoch %K",
+          "description": "Stochastic %K (14, smoothed 3), 0–100.",
+          "type": "number",
+          "format": {
+            "decimals": 1
+          },
+          "defaultWeight": 1,
+          "defaultCondition": "",
+          "conditions": [
+            {
+              "id": "lt20",
+              "label": "< 20 (oversold)",
+              "op": "lt",
+              "value": 20
+            },
+            {
+              "id": "gt80",
+              "label": "> 80 (overbought)",
+              "op": "gt",
+              "value": 80
+            }
+          ]
+        },
+        {
+          "id": "stoch_d_14",
+          "field": "stoch_d_14",
+          "label": "Stoch %D",
+          "description": "Stochastic %D: 3-day average of %K.",
+          "type": "number",
+          "format": {
+            "decimals": 1
+          },
+          "defaultWeight": 1,
+          "defaultCondition": "",
+          "conditions": [
+            {
+              "id": "lt20",
+              "label": "< 20 (oversold)",
+              "op": "lt",
+              "value": 20
+            },
+            {
+              "id": "gt80",
+              "label": "> 80 (overbought)",
+              "op": "gt",
+              "value": 80
+            },
+            {
+              "id": "k_above",
+              "label": "%K above %D",
+              "op": "ltField",
+              "field": "stoch_k_14"
+            }
+          ]
+        },
+        {
+          "id": "williams_r_14",
+          "field": "williams_r_14",
+          "label": "Williams %R",
+          "description": "Williams %R (14), from −100 to 0.",
+          "type": "number",
+          "format": {
+            "decimals": 1
+          },
+          "defaultWeight": 1,
+          "defaultCondition": "",
+          "conditions": [
+            {
+              "id": "lt-80",
+              "label": "< −80 (oversold)",
+              "op": "lt",
+              "value": -80
+            },
+            {
+              "id": "gt-20",
+              "label": "> −20 (overbought)",
+              "op": "gt",
+              "value": -20
+            }
+          ]
+        },
+        {
+          "id": "cci_20",
+          "field": "cci_20",
+          "label": "CCI 20",
+          "description": "Commodity Channel Index (20).",
+          "type": "number",
+          "format": {
+            "decimals": 1
+          },
+          "defaultWeight": 1,
+          "defaultCondition": "",
+          "conditions": [
+            {
+              "id": "lt-100",
+              "label": "< -100",
+              "op": "lt",
+              "value": -100
+            },
+            {
+              "id": "gt100",
+              "label": "> 100",
+              "op": "gt",
+              "value": 100
+            },
+            {
+              "id": "gt0",
+              "label": "> 0",
+              "op": "gt",
+              "value": 0
+            }
+          ]
+        },
+        {
+          "id": "gap_pct",
+          "field": "gap_pct",
+          "label": "Gap %",
+          "description": "Today's open versus previous close.",
+          "type": "number",
+          "format": {
+            "decimals": 2,
+            "suffix": "%"
+          },
+          "defaultWeight": 1,
+          "defaultCondition": "",
+          "conditions": [
+            {
+              "id": "gt0",
+              "label": "> 0",
+              "op": "gt",
+              "value": 0
+            },
+            {
+              "id": "gt2",
+              "label": "> 2",
+              "op": "gt",
+              "value": 2
+            },
+            {
+              "id": "lt-2",
+              "label": "< -2",
+              "op": "lt",
+              "value": -2
+            }
+          ]
+        }
       ]
     },
     {
-      "id": "analyst", "label": "Analyst Ratings", "description": "Consensus analyst view.", "defaultWeight": 1,
+      "id": "volatility",
+      "label": "Volatility",
+      "description": "Volatility and Bollinger Band indicators.",
+      "defaultWeight": 1,
       "columns": [
-        { "id": "rating", "field": "rating", "label": "Rating", "description": "Consensus analyst rating.", "type": "text",
-          "defaultWeight": 2, "defaultCondition": "buy",
+        {
+          "id": "atr_14",
+          "field": "atr_14",
+          "label": "ATR 14",
+          "description": "Average True Range (14), in price units.",
+          "type": "number",
+          "format": {
+            "decimals": 2
+          },
+          "defaultWeight": 1,
+          "defaultCondition": "",
+          "conditions": []
+        },
+        {
+          "id": "atr_pct_14",
+          "field": "atr_pct_14",
+          "label": "ATR % 14",
+          "description": "ATR as a percent of price.",
+          "type": "number",
+          "format": {
+            "decimals": 2,
+            "suffix": "%"
+          },
+          "defaultWeight": 1,
+          "defaultCondition": "",
           "conditions": [
-            { "id": "buy", "label": "is Buy / Strong Buy", "op": "in", "values": ["Buy", "Strong Buy"] },
-            { "id": "hold", "label": "is Hold", "op": "eq", "value": "Hold" }
-          ] }
+            {
+              "id": "lt2",
+              "label": "< 2 (calm)",
+              "op": "lt",
+              "value": 2
+            },
+            {
+              "id": "gt4",
+              "label": "> 4 (volatile)",
+              "op": "gt",
+              "value": 4
+            }
+          ]
+        },
+        {
+          "id": "bb_upper_20",
+          "field": "bb_upper_20",
+          "label": "BB upper",
+          "description": "Upper Bollinger Band (20, 2σ).",
+          "type": "number",
+          "format": {
+            "decimals": 2
+          },
+          "defaultWeight": 1,
+          "defaultCondition": "",
+          "conditions": [
+            {
+              "id": "above",
+              "label": "Close above upper band",
+              "op": "ltField",
+              "field": "close_price"
+            },
+            {
+              "id": "below",
+              "label": "Close below upper band",
+              "op": "gtField",
+              "field": "close_price"
+            }
+          ]
+        },
+        {
+          "id": "bb_lower_20",
+          "field": "bb_lower_20",
+          "label": "BB lower",
+          "description": "Lower Bollinger Band (20, 2σ).",
+          "type": "number",
+          "format": {
+            "decimals": 2
+          },
+          "defaultWeight": 1,
+          "defaultCondition": "",
+          "conditions": [
+            {
+              "id": "above",
+              "label": "Close above lower band",
+              "op": "ltField",
+              "field": "close_price"
+            },
+            {
+              "id": "below",
+              "label": "Close below lower band",
+              "op": "gtField",
+              "field": "close_price"
+            }
+          ]
+        },
+        {
+          "id": "bb_pct_b_20",
+          "field": "bb_pct_b_20",
+          "label": "BB %B",
+          "description": "Position of close within the bands: 0 = lower band, 1 = upper band.",
+          "type": "number",
+          "format": {
+            "decimals": 2
+          },
+          "defaultWeight": 1,
+          "defaultCondition": "",
+          "conditions": [
+            {
+              "id": "lt0.2",
+              "label": "< 0.2",
+              "op": "lt",
+              "value": 0.2
+            },
+            {
+              "id": "gt0.8",
+              "label": "> 0.8",
+              "op": "gt",
+              "value": 0.8
+            },
+            {
+              "id": "btw0.2_0.8",
+              "label": "0.2 to 0.8",
+              "op": "between",
+              "min": 0.2,
+              "max": 0.8
+            }
+          ]
+        },
+        {
+          "id": "bb_bandwidth_20",
+          "field": "bb_bandwidth_20",
+          "label": "BB bandwidth",
+          "description": "Band width relative to the middle band. Low values mean a squeeze.",
+          "type": "number",
+          "format": {
+            "decimals": 3
+          },
+          "defaultWeight": 1,
+          "defaultCondition": "",
+          "conditions": [
+            {
+              "id": "lt0.1",
+              "label": "< 0.10 (squeeze)",
+              "op": "lt",
+              "value": 0.1
+            },
+            {
+              "id": "gt0.25",
+              "label": "> 0.25",
+              "op": "gt",
+              "value": 0.25
+            }
+          ]
+        },
+        {
+          "id": "hist_vol_20",
+          "field": "hist_vol_20",
+          "label": "Hist. vol 20",
+          "description": "20-day historical volatility of returns.",
+          "type": "number",
+          "format": {
+            "decimals": 1
+          },
+          "defaultWeight": 1,
+          "defaultCondition": "",
+          "conditions": [
+            {
+              "id": "lt20",
+              "label": "< 20",
+              "op": "lt",
+              "value": 20
+            },
+            {
+              "id": "gt40",
+              "label": "> 40",
+              "op": "gt",
+              "value": 40
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "volume",
+      "label": "Volume",
+      "description": "Volume-weighted and money-flow indicators.",
+      "defaultWeight": 1,
+      "columns": [
+        {
+          "id": "mfi_14",
+          "field": "mfi_14",
+          "label": "MFI 14",
+          "description": "Money Flow Index (14), 0–100.",
+          "type": "number",
+          "format": {
+            "decimals": 1
+          },
+          "defaultWeight": 1,
+          "defaultCondition": "",
+          "conditions": [
+            {
+              "id": "lt20",
+              "label": "< 20 (oversold)",
+              "op": "lt",
+              "value": 20
+            },
+            {
+              "id": "gt50",
+              "label": "> 50",
+              "op": "gt",
+              "value": 50
+            },
+            {
+              "id": "gt80",
+              "label": "> 80 (overbought)",
+              "op": "gt",
+              "value": 80
+            }
+          ]
+        },
+        {
+          "id": "cmf_20",
+          "field": "cmf_20",
+          "label": "CMF 20",
+          "description": "Chaikin Money Flow (20), from −1 to 1.",
+          "type": "number",
+          "format": {
+            "decimals": 2
+          },
+          "defaultWeight": 1,
+          "defaultCondition": "gt0",
+          "conditions": [
+            {
+              "id": "gt0",
+              "label": "> 0 (accumulation)",
+              "op": "gt",
+              "value": 0
+            },
+            {
+              "id": "gt0.1",
+              "label": "> 0.1",
+              "op": "gt",
+              "value": 0.1
+            },
+            {
+              "id": "lt0",
+              "label": "< 0 (distribution)",
+              "op": "lt",
+              "value": 0
+            }
+          ]
+        },
+        {
+          "id": "vwap_20_dist_pct",
+          "field": "vwap_20_dist_pct",
+          "label": "Dist. to VWAP 20",
+          "description": "Close relative to the 20-day VWAP.",
+          "type": "number",
+          "format": {
+            "decimals": 2,
+            "suffix": "%"
+          },
+          "defaultWeight": 1,
+          "defaultCondition": "",
+          "conditions": [
+            {
+              "id": "gt0",
+              "label": "> 0 (above VWAP)",
+              "op": "gt",
+              "value": 0
+            },
+            {
+              "id": "lt0",
+              "label": "< 0 (below VWAP)",
+              "op": "lt",
+              "value": 0
+            }
+          ]
+        },
+        {
+          "id": "volume_ratio_20",
+          "field": "volume_ratio_20",
+          "label": "Volume ratio 20",
+          "description": "Latest volume divided by its 20-day average.",
+          "type": "number",
+          "format": {
+            "decimals": 2
+          },
+          "defaultWeight": 1,
+          "defaultCondition": "gt1.5",
+          "conditions": [
+            {
+              "id": "gt1.5",
+              "label": "> 1.5",
+              "op": "gt",
+              "value": 1.5
+            },
+            {
+              "id": "gt2",
+              "label": "> 2",
+              "op": "gt",
+              "value": 2
+            },
+            {
+              "id": "lt0.5",
+              "label": "< 0.5",
+              "op": "lt",
+              "value": 0.5
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "range52w",
+      "label": "52-Week Range",
+      "description": "Position within the 52-week (252 trading day) high/low range.",
+      "defaultWeight": 1,
+      "columns": [
+        {
+          "id": "high_52w",
+          "field": "high_52w",
+          "label": "52w high",
+          "description": "Highest high over the last 252 trading days.",
+          "type": "number",
+          "format": {
+            "decimals": 2
+          },
+          "defaultWeight": 1,
+          "defaultCondition": "",
+          "conditions": []
+        },
+        {
+          "id": "low_52w",
+          "field": "low_52w",
+          "label": "52w low",
+          "description": "Lowest low over the last 252 trading days.",
+          "type": "number",
+          "format": {
+            "decimals": 2
+          },
+          "defaultWeight": 1,
+          "defaultCondition": "",
+          "conditions": []
+        },
+        {
+          "id": "pct_from_52w_high",
+          "field": "pct_from_52w_high",
+          "label": "% from 52w high",
+          "description": "Distance of close from the 52-week high (0 or negative).",
+          "type": "number",
+          "format": {
+            "decimals": 1,
+            "suffix": "%"
+          },
+          "defaultWeight": 1,
+          "defaultCondition": "gte-10",
+          "conditions": [
+            {
+              "id": "gte-5",
+              "label": ">= −5 (near high)",
+              "op": "gte",
+              "value": -5
+            },
+            {
+              "id": "gte-10",
+              "label": ">= −10",
+              "op": "gte",
+              "value": -10
+            },
+            {
+              "id": "lt-30",
+              "label": "< −30 (deep drawdown)",
+              "op": "lt",
+              "value": -30
+            }
+          ]
+        },
+        {
+          "id": "pct_from_52w_low",
+          "field": "pct_from_52w_low",
+          "label": "% from 52w low",
+          "description": "Distance of close above the 52-week low.",
+          "type": "number",
+          "format": {
+            "decimals": 1,
+            "suffix": "%"
+          },
+          "defaultWeight": 1,
+          "defaultCondition": "",
+          "conditions": [
+            {
+              "id": "lt10",
+              "label": "< 10 (near low)",
+              "op": "lt",
+              "value": 10
+            },
+            {
+              "id": "gt50",
+              "label": "> 50",
+              "op": "gt",
+              "value": 50
+            },
+            {
+              "id": "gt100",
+              "label": "> 100",
+              "op": "gt",
+              "value": 100
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "delivery",
+      "label": "Delivery",
+      "description": "Delivery volume trends.",
+      "defaultWeight": 1,
+      "columns": [
+        {
+          "id": "deliv_ratio_5d_52w",
+          "field": "deliv_ratio_5d_52w",
+          "label": "Delivery 5d/52w",
+          "description": "This week's average delivery quantity divided by the 52-week average.",
+          "type": "number",
+          "format": {
+            "decimals": 2
+          },
+          "defaultWeight": 1,
+          "defaultCondition": "gt1",
+          "conditions": [
+            {
+              "id": "gt1",
+              "label": "> 1 (above average)",
+              "op": "gt",
+              "value": 1
+            },
+            {
+              "id": "gt1.5",
+              "label": "> 1.5",
+              "op": "gt",
+              "value": 1.5
+            },
+            {
+              "id": "lt0.7",
+              "label": "< 0.7",
+              "op": "lt",
+              "value": 0.7
+            }
+          ]
+        }
       ]
     }
   ]

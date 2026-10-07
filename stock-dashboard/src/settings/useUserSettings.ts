@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { get, ref, remove, set } from 'firebase/database';
 import { db } from '../firebase';
-import { config, Filter, Handlers, NONE, SavedSettings, Settings } from '../types';
+import { config, DEFAULT_GROUP, isValidGroup, Filter, Handlers, NONE, SavedSettings, Settings } from '../types';
 
 const defaults: Settings = {
   groupWeights: Object.fromEntries(config.groups.map((g) => [g.id, g.defaultWeight])),
@@ -38,9 +38,9 @@ export function useUserSettings(uid: string) {
       .then((s) => {
         if (off) return;
         const v = s.val();
-        setGroupState(config.symbolGroups.some((g) => g.id === v) ? v : config.defaultSymbolGroup);
+        setGroupState(isValidGroup(v) ? v : DEFAULT_GROUP);
       })
-      .catch((e) => { if (!off) { setError(e.message); setStatus('error'); setGroupState(config.defaultSymbolGroup); } });
+      .catch((e) => { if (!off) { setError(e.message); setStatus('error'); setGroupState(DEFAULT_GROUP); } });
     return () => { off = true; };
   }, [uid]);
 

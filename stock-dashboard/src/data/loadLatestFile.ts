@@ -44,14 +44,6 @@ function csvToObjects(text: string): DataRow[] {
   );
 }
 
-function parseMembership(m: unknown): string[] {
-  if (Array.isArray(m)) return m.map(String);
-  if (typeof m !== 'string' || !m.trim()) return [];
-  const s = m.trim();
-  if (s.startsWith('[')) { try { const a = JSON.parse(s); if (Array.isArray(a)) return a.map(String); } catch { /* fall through */ } }
-  return s.split(/[|;,]/).map((x) => x.trim().replace(/^["']|["']$/g, '')).filter(Boolean);
-}
-
 function normalize(raw: DataRow[], cfg: DashboardConfig): Row[] {
   if (raw.length && !(cfg.symbolField in raw[0]))
     throw new Error(`Column "${cfg.symbolField}" not found. CSV columns: ${Object.keys(raw[0]).join(', ')}`);
@@ -66,7 +58,7 @@ function normalize(raw: DataRow[], cfg: DashboardConfig): Row[] {
     if (sym == null || sym === '') continue;
     const data: DataRow = { ...r };
     numeric.forEach((f) => { data[f] = toNum(r[f]); });
-    rows.push({ symbol: String(sym), groups: parseMembership(r[cfg.groupMembershipField]), data });
+    rows.push({ symbol: String(sym), data });
   }
   return rows;
 }
